@@ -103,6 +103,13 @@ router.use('/', function(req, res, next) {
   next('route');
 });
 
+router.get('/resetproject', async function (req, res, next) {
+  setHeader(res);
+
+  Product.deleteMany({});
+  sendok(res, "Done");
+}); 
+
 router.get('/confirmlatest/:pname/:ptype/:pversion', async function (req, res, next) {
   setHeader(res);
   var {pname, ptype, pversion} = req.params;
