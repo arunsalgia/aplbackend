@@ -24,7 +24,7 @@ app = express();
 app.use(bodyParser.urlencoded({extended: true}))
 app.use(methodOverride('_method'));
 
-PRODUCTION=false;  
+PRODUCTION=true;  
 
 if (PRODUCTION)
   PORT = process.env.PORT || 80;

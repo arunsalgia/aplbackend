@@ -416,7 +416,7 @@ router.get('/downloadlatestbinary/:pname/:ptype', async function (req, res) {
   
   let myProduct = await Product.find({
     name: pname.toUpperCase(),
-    type: pname.toUpperCase(),
+    type: ptype.toUpperCase(),
     // version: pversion
   }).limit(1).sort({ "versionNumber": -1 })
   
