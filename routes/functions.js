@@ -65,13 +65,13 @@ async function cleanup() {
     let allProducts = await Product.find({});
     for(p=0; p<allProducts.length; ++p) {
         let prod = allProducts[p];
-        // console.log(prod);
+        console.log(prod);
         let myFile = getFileName(prod.name, prod.versionNumber, prod.type);
-        // console.log(myFile);
+        console.log(myFile);
         if (!fileExist(myFile)) {
-            // console.log("File does not exists deleteing");
-            // console.log(prod.name, prod.versionNumber, prod.type );
-            await Product.deleteOne({
+            // // console.log("File does not exists deleteing");
+            // // console.log(prod.name, prod.versionNumber, prod.type );
+            // await Product.deleteOne({
                 name: prod.name,
                 versionNumber: prod.versionNumber,
                 type: prod.type 
