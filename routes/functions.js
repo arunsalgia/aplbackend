@@ -69,9 +69,9 @@ async function cleanup() {
         let myFile = getFileName(prod.name, prod.versionNumber, prod.type);
         console.log(myFile);
         if (!fileExist(myFile)) {
-            // // console.log("File does not exists deleteing");
-            // // console.log(prod.name, prod.versionNumber, prod.type );
-            // await Product.deleteOne({
+            console.log("File does not exists deleteing");
+            console.log(prod.name, prod.versionNumber, prod.type );
+            await Product.deleteOne({
                 name: prod.name,
                 versionNumber: prod.versionNumber,
                 type: prod.type 
