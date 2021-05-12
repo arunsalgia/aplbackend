@@ -1,4 +1,5 @@
-// const { encrypt, decrypt, dbencrypt, dbdecrypt, dbToSvrText, svrToDbText, sendCricMail, } = require('./cricspecial'); 
+const { getRootDir, getFileName, fileExist, renameFile, 
+  setVersionNumber, getVersionNumber, cleanup} =  require("./functions.js");
 
 // SET STORAGE
 const storage = multer.diskStorage({
@@ -30,83 +31,18 @@ const gfsUpload = multer({ gfsStorage });
 
 var router = express.Router();
 
-var ROOTDIR="";
-function getRootDir() {
-  if (ROOTDIR === "")
-    ROOTDIR = process.cwd() + "/"
-  return ROOTDIR;
-}
-
-function getFileName(productName, productVersion, productType) {
-  let myFile = getRootDir() + "public/" + 
-    productName + "_" + 
-    productVersion + "." + 
-    productType;
-  return myFile 
-}
-
-function fileExists(myFile) {
-  status = fs.existsSync(myFile)
-  return status;
-}
-
-function renameFile(oldfile, newFile) {
-  // if new file already exists delete it
-  if (fileExists(newFile))
-    fs.unlinkSync(newFile);
-
-    // now rename the file
-  fs.renameSync(oldfile, newFile);
-}
-
-
-function nnn(sss) {
-  let num = 0;
-  // console.log("String os ", sss);
-  if (sss)
-  if (sss.length > 0)
-    num = parseInt(sss);
-  // console.log("number is ", num);
-  return num;
-}
-
-function setVersionNumber(verNo) {
-  let myStr = Math.trunc(verNo/10000).toString() + ".";
-  verNo = verNo % 10000;
-  myStr = myStr = Math.trunc(verNo/100).toString() + ".";
-  verNo = verNo % 100;
-  myStr = myStr + verNo.toString();
-  return myStr;
-}
-
-function getVersionNumber(verStr) {
-  let myNumber = 0;
-  let tmp = verStr.split(".");
-  // console.log("Tmp length ", tmp.length);
-  if (tmp.length ===  3) {
-    let num1 = nnn(tmp[0]);
-    let num2 = nnn(tmp[1]);
-    let num3 = nnn(tmp[2]);
-    // console.log("Indi version ", num1, num2,  num3);
-    myNumber = num1 * 10000 + num2 * 100 + num3;
-  }
-  return myNumber;
-}
-
 
 /* GET users listing. */
 router.use('/', function(req, res, next) {
-  // AplRes = res;
   setHeader(res);
   if (!db_connection) { senderr(res, DBERROR, ERR_NODB); return; }
-  // console.log(req);
   next('route');
 });
 
 router.get('/resetproject', async function (req, res, next) {
   setHeader(res);
 
-  Product.deleteMany({});
+  await Product.deleteMany({});
   sendok(res, "Done");
 }); 
 
@@ -114,6 +50,8 @@ router.get('/confirmlatest/:pname/:ptype/:pversion', async function (req, res, n
   setHeader(res);
   var {pname, ptype, pversion} = req.params;
   let isLatest = false;
+
+  let returnObject;
 
   let myProduct = await Product.find({
     name: pname.toUpperCase(),
@@ -127,14 +65,15 @@ router.get('/confirmlatest/:pname/:ptype/:pversion', async function (req, res, n
       isLatest = true;
   } 
 
-  sendok(res, {status: isLatest});
+  sendok(res, {status: isLatest, latest: returnObject});
 }); 
 
 
-router.get('/getfilenames', async function (req, res, next) {
+router.get('/getimagenames', async function (req, res, next) {
   setHeader(res);
 
-  let myData = {bin: [], player: [], team: []};
+  let myData = {player: [], team: []};
+  
   let data = await Player.find({},{uid: true, _id: false});
   myData.player = _.map(data, 'uid');
   myData.player = _.sortBy(myData.player);
@@ -191,7 +130,7 @@ router.post('/uploadimage/:fileType/:fileName', async function (req, res) {
       }
     } 
 
-    var filePath = getRootDir() + 'public/' + fileName;
+    var filePath = getRootDir() + ARCHIVEDIR + fileName;
     console.log(filePath);
     myObject.image = {
       data: fs.readFileSync(filePath),
@@ -210,6 +149,7 @@ router.post('/uploadimage/:fileType/:fileName', async function (req, res) {
 
 router.get('/downloadimage/:fileType/:fileName', async function (req, res) {
   setHeader(res);
+
   var {fileType, fileName} = req.params;
   fileType = fileType.toUpperCase();
   fileName = fileName.toUpperCase();
@@ -224,108 +164,12 @@ router.get('/downloadimage/:fileType/:fileName', async function (req, res) {
 
   // console.log(myObject);
   if (myObject) {
-    myFile = getRootDir() + "/public/DOWNLOADIMAGE.JPG"
+    myFile = getRootDir() + ARCHIVEDIR + "DOWNLOADIMAGE.JPG"
     fs.writeFileSync(myFile, myObject.image.data);
     res.contentType("application/x-msdownload");
     res.status(200).sendFile(myFile);
   } else
     senderr(res, 500, "Image not found");
-})
-
-router.post('/orguploadbinary/:pname/:ptype/:pversion/:fileName', gfsUpload.single('file'), async (req, res, nxt) => {
-  setHeader(res);
-  var {pname, ptype, pversion, fileName} = req.params;
-  pname = pname.toUpperCase();
-  ptype = ptype.toUpperCase();
-  fileName = fileName.toUpperCase();
-  
-  if ((ptype !== "EXE") && (ptype !== "APK"))
-    return senderr(res, 501, "Invalid file type");
-
-  // gfsUpload(req, res, (err) => {
-  //   if (err) return senderr(res, 500, "No file provided");      //    res.sendStatus(500);
-  // });
-
-  let versionNumber = getVersionNumber(pversion);
-  let origFileName  = getRootDir() + 'public/' + fileName;
-  let newFileName   = getRootDir() + 'public/' + pname + "_" + versionNumber + "." + ptype;
-  
-  console.log(origFileName);
-  console.log(newFileName);
-
-  return sendok(res, "Binary done");
-
-  let xxx = fileName.split(".");
-
-  var filePath = getRootDir() + 'public/' + fileName;
-  console.log(filePath);
-  myObject.image = {
-    data: fs.readFileSync(filePath),
-    contentType: 'image/jpg'
-  }
-  await myObject.save();
-
-  // now delete the file
-  fs.unlinkSync(filePath);
-  
-  console.log("At fag end");
-  return  sendok(res, 'File uploaded');                //res.send('File uploaded!');
-
-  setHeader(res);
-
-  console.log("In upload binary");
-
-  pname = pname.toUpperCase();
-  ptype = ptype.toUpperCase();
-  console.log(pname, ptype, pversion);
-
-  console.log(req.files);
-
-  return sendok(res, "ok");
-
-  if (!req.files)
-    return senderr(res, 400, 'No files were uploaded.');
-
-  if (!((ptype === "EXE") || (ptype === "APK")))
-    return senderr(res, 401, 'Invalid product type.');
-
-  let versionNUmber = getVersionNumber(pversion);
-  let myObject = new Product();
-  myObject.name = pname;
-  myObject.type = ptype;
-  myObject.version = pversion;
-  myObject.versionNumber = versionNUmber;
-  console.log(myObject);
-  // await myObject.save();
-  sendok(res, myObject);
-
-  var sampleFile = req.files.file;
-  sampleFile.name = sampleFile.name.toUpperCase();
-  console.log("sampleFile: " + sampleFile.name);
-
-  var filePath = getRootDir() + '/public/' + name + "_" + version + ".exe";
-  console.log(filePath);
-
-  sampleFile.mv(filePath, function(err) {
-    if (err) {
-      return senderr(res, 500, err);   //  return res.status(500).send(err);
-    } 
-    // else {
-    //   sendok(res, 'File uploaded');                //res.send('File uploaded!');
-    // }
-  });
-
-  const fileStream = fs.createReadStream(filePath)
-        // upload file to gridfs
-  const gridFile = new GridFile({ filename: "ARUN.exe" })
-  await gridFile.upload(fileStream)
-
-        // delete the file from local folder
-  fs.unlinkSync(filePath)
-
-  sendok(res, "OK")
-  // console.log(fileType, folder);
-
 })
 
 
@@ -345,13 +189,13 @@ router.post('/uploadbinary/:pname/:ptype/:pversion/:fileName', async function (r
 
     // file successfully uploaded
     let versionNumber = getVersionNumber(pversion);
-    let origFileName  = getRootDir() + 'public/' + fileName;
+    let origFileName  = getRootDir() + ARCHIVEDIR + fileName;
     let newFileName   = getFileName(pname, versionNumber, ptype);
     
     console.log(origFileName);
     console.log(newFileName);
   
-    if (fs.existsSync(newFileName))
+    if (fileExist(newFileName))
       fs.unlinkSync(newFileName);
       
     renameFile(origFileName, newFileName);
@@ -367,11 +211,12 @@ router.post('/uploadbinary/:pname/:ptype/:pversion/:fileName', async function (r
       myBinary = new Product();
       myBinary.name = pname;
       myBinary.type = ptype;
+      myBinary.text = pversion;
       myBinary.version = pversion;
       myBinary.versionNumber = versionNumber;
-      console.log(myBinary);
-      myBinary.save();
     }
+    console.log(myBinary);
+    myBinary.save();
 
     console.log("At fag end");
     return  sendok(res, 'File uploaded');                //res.send('File uploaded!');  
@@ -396,7 +241,8 @@ router.get('/downloadbinary/:pname/:ptype/:pversion', async function (req, res) 
 
   if (myObject) {
     // console.log(myObject);
-    myFile = getRootDir() + "public/" + pname + "_" + myObject.versionNumber + "." + ptype;
+    // myFile = getRootDir() + "public/" + pname + "_" + myObject.versionNumber + "." + ptype;
+    myFile = getFileName(pname, myObject.versionNumber, ptype);
     console.log(myFile);
     res.contentType("application/x-msdownload");
     res.status(200).sendFile(myFile);
@@ -425,12 +271,101 @@ router.get('/downloadlatestbinary/:pname/:ptype', async function (req, res) {
   let myFile = getFileName(pname, myProduct[0].versionNumber, ptype);
   console.log(myFile);
 
-  if (fileExists(myFile)) {
+  if (fileExist(myFile)) {
     res.contentType("application/x-msdownload");
     res.status(200).sendFile(myFile);
   } else
     senderr(res, 502, "Image not found");  
 })
+
+router.get('/purgeproduct/:pname/:ptype', async function (req, res) {
+  setHeader(res);
+  var {pname, ptype} = req.params;
+  
+  pname = pname.toUpperCase();
+  ptype = ptype.toUpperCase();
+  console.log(pname, ptype);
+  
+  // get sorted product list with higest version first
+  let myProduct = await Product.find({
+    name: pname,
+    type: ptype,
+  }).sort({ "versionNumber": -1 })
+  
+  // if (myProduct.length === 0) return senderr(res, 501, "No product available");
+
+  // now purge
+  // delete all except the 1st i.e. with index 0
+  for(p=1; p<myProduct.length; ++p) {
+    await Product.deleteOne({
+      name: myProduct[p].name,
+      versionNumber: myProduct[p].versionNumber,
+      type: myProduct[p].type
+    });
+
+    let myFile = getFileName(myProduct[p].name, myProduct[p].versionNumber, myProduct[p].type);
+    console.log(myFile);
+    if (fileExist(myFile)) 
+      fs.unlinkSync(myFile);
+  }
+  sendok(res, "Done");
+})
+
+
+router.get('/deleteproduct/:pname/:ptype/:pversion', async function (req, res) {
+  setHeader(res);
+  var {pname, ptype, pversion} = req.params;
+  
+  pname = pname.toUpperCase();
+  ptype = ptype.toUpperCase();
+  console.log(pname, ptype, pversion);
+  
+  let myProduct = await Product.findOne({
+    name: pname,
+    type: ptype,
+    version: pversion
+  });
+  
+  if (myProduct) {
+    await Product.deleteOne({
+      name: pname,
+      type: ptype,
+      version: pversion
+    });
+
+    let myFile = getFileName(myProduct.name, myProduct.versionNumber, myProduct.type);
+    console.log(myFile);
+    if (fileExist(myFile)) 
+      fs.unlinkSync(myFile);
+  }
+  sendok(res, "Done");
+})
+
+
+router.get('/setproducttext/:pname/:ptype/:pversion/:ptext', async function (req, res) {
+  setHeader(res);
+  var {pname, ptype, pversion, ptext} = req.params;
+  
+  pname = pname.toUpperCase();
+  ptype = ptype.toUpperCase();
+  console.log(ptext);
+  console.log(pname, ptype, pversion);
+
+  let myProduct = await Product.findOne({
+    name: pname,
+    type: ptype,
+    version: pversion
+  });
+  
+  if (myProduct) {
+    myProduct.text = ptext;
+    myProduct.save();
+    sendok(res, "Updated text");
+  } else {
+    senderr(res, 501, "Not found");
+  }
+})
+
 
 router.get('/feedback/:userid/:message', async function (req, res, next) {
   // AplRes = res;

@@ -16,6 +16,10 @@ GridFsStorage = require('multer-gridfs-storage');
 Grid = require('gridfs-stream');
 methodOverride = require('method-override');
 
+const { getRootDir, getFileName, fileExist, renameFile, 
+  setVersionNumber, getVersionNumber, cleanup} =  require("./routes/functions.js");
+
+
 mongoose_conn_string = "mongodb+srv://apl:Apl@123@apl.udhzp.mongodb.net/APL";
 gfs = null;
 
@@ -25,11 +29,13 @@ app.use(bodyParser.urlencoded({extended: true}))
 app.use(methodOverride('_method'));
 
 PRODUCTION=true;  
+ARCHIVEDIR="public/";       // binary will be stored here
 
-if (PRODUCTION)
-  PORT = process.env.PORT || 80;
-else
-  PORT = process.env.PORT || 1989;
+
+// if (PRODUCTION)
+//   PORT = process.env.PORT || 80;
+// else
+PORT = process.env.PORT || 1989;
 
 http = require('http');
 httpServer = http.createServer(app);
@@ -101,9 +107,10 @@ TeamSchema = mongoose.Schema({
 
 ProductSchema = mongoose.Schema({
   name: String,
-  type: String,  // APK or EXE
-  version: String,
-  versionNumber: Number,
+  type: String,           // APK or EXE
+  text: String,           // to store what is new
+  version: String,        // <major version>.<minor version>.<patch number>
+  versionNumber: Number,  // <major version> * 10000 + <minor Version>*100 + <patch number>
 })
 
 // models
@@ -137,11 +144,16 @@ mongoose.connect(mongoose_conn_string, { useNewUrlParser: true, useUnifiedTopolo
 // CONNECTION EVENTS
 // When successfully connected
  
-mongoose.connection.on('connected', function () {
+mongoose.connection.on('connected', async function () {
   // console.log(mongoose.connection.db);
   console.log('Mongoose default connection open to ' + mongoose_conn_string);
   db_connection = true;
   connectRequest = true;
+
+  // do clean up once after connection established
+  console.log("Calling cleanup");
+  await cleanup();
+
   gfs = Grid(mongoose.connection.db, mongoose.mongo);  
   gfs.collection('uploads');
   // console.log(gfs);
