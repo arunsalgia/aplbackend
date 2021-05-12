@@ -150,9 +150,6 @@ mongoose.connection.on('connected', async function () {
   db_connection = true;
   connectRequest = true;
 
-  // do clean up once after connection established
-  console.log("Calling cleanup");
-  //await cleanup();
 
   gfs = Grid(mongoose.connection.db, mongoose.mongo);  
   gfs.collection('uploads');
