@@ -151,7 +151,9 @@ mongoose.connection.on('connected', async function () {
   db_connection = true;
   connectRequest = true;
 
-
+  console.log("Calliong cleanup");
+  await cleanup();
+  
   gfs = Grid(mongoose.connection.db, mongoose.mongo);  
   gfs.collection('uploads');
   // console.log(gfs);
