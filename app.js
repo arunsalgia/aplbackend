@@ -136,7 +136,7 @@ weekShortDays = new Array("Sun", "Mon", "Tue", "Wedn", "Thu", "Fri", "Sat");
 DBERROR = 990;
 DBFETCHERR = 991;
 CRICFETCHERR = 992;
-ERR_NODB = "No connection to CricDream database";
+ERR_NODB = "No connection to APL master database";
 
 // make mogoose connection
 mongoose.connect(mongoose_conn_string, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -220,20 +220,6 @@ const TZ_IST={hours: 5, minutes: 30};
 EMAILERROR="";
 CRICDREAMEMAILID='cricketpwd@gmail.com';
 sendEmailToUser = async function(userEmailId, userSubject, userText) {
-  // USERSUBJECT='User info from CricDream';
-  // USEREMAILID='salgia.ankit@gmail.com';
-  // USERTEXT=`Dear User,
-    
-      // Greeting from CricDeam.
-  
-      // As requested by you here is login details.
-  
-      // Login Name: ${uRec.userName} 
-      // User Name : ${uRec.displayName}
-      // Password  : ${uRec.password}
-  
-      // Regards,
-      // for Cricdream.`
     
   var transporter = nodemailer.createTransport({
   service: 'gmail',

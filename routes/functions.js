@@ -27,6 +27,10 @@ function renameFile(oldfile, newFile) {
   fs.renameSync(oldfile, newFile);
 }
 
+function deletefile(fileName) {
+  if (fileExist(fileName))
+    fs.unlinkSync(fileName);
+}
 
 function nnn(sss) {
   let num = 0;
@@ -65,11 +69,11 @@ async function cleanup() {
     let allProducts = await Product.find({});
     for(p=0; p<allProducts.length; ++p) {
         let prod = allProducts[p];
-        console.log(prod);
+        // console.log(prod);
         let myFile = getFileName(prod.name, prod.versionNumber, prod.type);
         console.log(myFile);
         if (!fileExist(myFile)) {
-            console.log("File does not exists deleteing");
+            // console.log("File does not exists deleteing");
             console.log(prod.name, prod.versionNumber, prod.type );
             await Product.deleteOne({
                 name: prod.name,
@@ -85,7 +89,9 @@ async function cleanup() {
 
 module.exports =  
 { 
-    getRootDir, getFileName, fileExist, renameFile, 
+    getRootDir, getFileName, 
+    
+    fileExist, renameFile, deletefile,
     setVersionNumber, getVersionNumber, 
     cleanup,
 };

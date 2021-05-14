@@ -1,5 +1,8 @@
-const { getRootDir, getFileName, fileExist, renameFile, 
-  setVersionNumber, getVersionNumber, cleanup} =  require("./functions.js");
+const { getRootDir, getFileName, 
+  fileExist, renameFile, deletefile,
+  setVersionNumber, getVersionNumber, 
+  cleanup
+} =  require("./functions.js");
 
 // SET STORAGE
 const storage = multer.diskStorage({
@@ -42,7 +45,16 @@ router.use('/', function(req, res, next) {
 router.get('/resetproject', async function (req, res, next) {
   setHeader(res);
 
-  await Product.deleteMany({});
+  let allProducts = await Product.find({});
+  let xxx = Product.deleteMany({});
+  for(let p=0; p<allProducts.length; ++p) {
+    let myFile = getFileName(allProducts[p].name, 
+      allProducts[p].versionNumber,
+      allProducts[p].type
+      );
+    deletefile(myFile);
+  }
+  await xxx;
   sendok(res, "Done");
 }); 
 
@@ -61,7 +73,9 @@ router.get('/confirmlatest/:pname/:ptype/:pversion', async function (req, res, n
   // console.log(myProduct);
 
   if (myProduct.length > 0) {
-    if (myProduct[0].version === pversion)
+    returnObject = myProduct[0];
+    let clientversion = getVersionNumber(pversion);
+    if (myProduct[0].versionNumber <= clientversion)
       isLatest = true;
   } 
 
@@ -139,8 +153,8 @@ router.post('/uploadimage/:fileType/:fileName', async function (req, res) {
     await myObject.save();
   
     // now delete the file
-    fs.unlinkSync(filePath);
-    
+    deletefile(filePath);
+
     return  sendok(res, 'File uploaded');                //res.send('File uploaded!');
     });
     
@@ -195,9 +209,7 @@ router.post('/uploadbinary/:pname/:ptype/:pversion/:fileName', async function (r
     console.log(origFileName);
     console.log(newFileName);
   
-    if (fileExist(newFileName))
-      fs.unlinkSync(newFileName);
-      
+    // deletefile(newFileName);       will be handled by rename file
     renameFile(origFileName, newFileName);
 
     let myBinary = await Product.findOne({
@@ -205,7 +217,7 @@ router.post('/uploadbinary/:pname/:ptype/:pversion/:fileName', async function (r
       type: ptype,
       versionNumber: versionNumber
     });
-    console.log(myBinary);
+    // console.log(myBinary);
 
     if (!myBinary) {
       myBinary = new Product();
@@ -215,7 +227,7 @@ router.post('/uploadbinary/:pname/:ptype/:pversion/:fileName', async function (r
       myBinary.version = pversion;
       myBinary.versionNumber = versionNumber;
     }
-    console.log(myBinary);
+    // console.log(myBinary);
     myBinary.save();
 
     console.log("At fag end");
@@ -247,9 +259,7 @@ router.get('/downloadbinary/:pname/:ptype/:pversion', async function (req, res) 
     res.contentType("application/x-msdownload");
     res.status(200).sendFile(myFile);
   } else
-    senderr(res, 500, "Image not found");
-
-  
+    senderr(res, 500, "Image not found");  
 })
 
 router.get('/downloadlatestbinary/:pname/:ptype', async function (req, res) {
@@ -292,8 +302,6 @@ router.get('/purgeproduct/:pname/:ptype', async function (req, res) {
     type: ptype,
   }).sort({ "versionNumber": -1 })
   
-  // if (myProduct.length === 0) return senderr(res, 501, "No product available");
-
   // now purge
   // delete all except the 1st i.e. with index 0
   for(p=1; p<myProduct.length; ++p) {
@@ -304,9 +312,8 @@ router.get('/purgeproduct/:pname/:ptype', async function (req, res) {
     });
 
     let myFile = getFileName(myProduct[p].name, myProduct[p].versionNumber, myProduct[p].type);
-    console.log(myFile);
-    if (fileExist(myFile)) 
-      fs.unlinkSync(myFile);
+    // console.log(myFile);
+    deletefile(myFile);
   }
   sendok(res, "Done");
 })
@@ -335,8 +342,7 @@ router.get('/deleteproduct/:pname/:ptype/:pversion', async function (req, res) {
 
     let myFile = getFileName(myProduct.name, myProduct.versionNumber, myProduct.type);
     console.log(myFile);
-    if (fileExist(myFile)) 
-      fs.unlinkSync(myFile);
+    deletefile(myFile);
   }
   sendok(res, "Done");
 })
@@ -442,22 +448,6 @@ router.get('/master/delete/:myKey', async function (req, res, next) {
     senderr(res, 601, `Key ${myKey} not found in Master Settings`);
   }
 });
-
-router.get('/support1', async function (req, res, next) {
-  // AplRes = res;
-  setHeader(res);
-
-  let matchId = 1243388;
-  let myTournament = 'indengt20-2021';
-  let BriefStat = mongoose.model(myTournament+BRIEFSUFFIX, BriefStatSchema);
-  var briefList = await BriefStat.find({ sid: 0 });
-  briefList.forEach(x => {
-    x.sid = matchId;
-    //x.score = x.score/2; 
-    x.save();
-  });
-  sendok(res, 'Done');
-}); 
 
 
 function sendok(res, usrmsg) { res.send(usrmsg); }
