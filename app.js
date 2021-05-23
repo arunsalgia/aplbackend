@@ -152,7 +152,7 @@ mongoose.connection.on('connected', async function () {
   connectRequest = true;
 
   console.log("Calliong cleanup");
-  await cleanup();
+  // await cleanup();
   
   gfs = Grid(mongoose.connection.db, mongoose.mongo);  
   gfs.collection('uploads');
@@ -189,9 +189,22 @@ process.on('SIGINT', function () {
 });
 
 // schedule task
+dummyCount = 0;
+MAXDUMMYCOUNT=4;
+
 cron.schedule('*/15 * * * * *', () => {
-    if (!connectRequest)
+    if (!connectRequest) {
       mongoose.connect(mongoose_conn_string, { useNewUrlParser: true, useUnifiedTopology: true });
+    } else {
+      if (++dummyCount >= MAXDUMMYCOUNT) {
+        dummyCount = 0;
+        let junk = Product.find({});
+        let x = new Date();
+        console.log(x.toLocaleDateString());
+      }
+    }
+
+
 });
 
 
